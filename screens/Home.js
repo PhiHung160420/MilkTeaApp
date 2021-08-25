@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {HeaderBar, Rewards, Promo} from '../components/index';
 import {connect} from 'react-redux';
-import {COLORS, SIZES, FONTS, icons} from '../constants/index';
+import {COLORS, SIZES, FONTS, icons, constants} from '../constants/index';
 
 const Home = ({navigation, appTheme}) => {
   return (
@@ -23,8 +23,11 @@ const Home = ({navigation, appTheme}) => {
         contentContainerStyle={{paddingBottom: 150}}>
         {/* Rewards */}
         <Rewards />
+        {/* Rewards */}
+
         {/* Promo */}
         <Promo />
+        {/* Promo */}
       </ScrollView>
     </View>
   );

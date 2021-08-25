@@ -1,4 +1,10 @@
-import React, {useRef} from 'react';
+import React, {
+  createRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   StyleSheet,
@@ -7,35 +13,100 @@ import {
   Animated,
   Image,
 } from 'react-native';
+import FlatList from 'react-native-gesture-handler';
 import {COLORS, constants, dummyData, FONTS, SIZES} from '../../constants';
 import {connect} from 'react-redux';
 import {CustomButton} from '../index';
 import {useNavigation} from '@react-navigation/native';
 
-const promoTabs = constants.promoTabs;
+const promoTabs = constants.promoTabs.map(promoTab => ({
+  ...promoTab,
+  ref: createRef(),
+}));
 
-const Tabs = ({appTheme}) => {
+const TabIndicator = ({measure, scrollX}) => {
+  const inputRange = measure.map((_, i) => i * SIZES.width);
+  const tabIndicatorWidth = scrollX.interpolate({
+    inputRange,
+    outputRange: measure.map(item => item.width),
+  });
+
+  const translateX = scrollX.interpolate({
+    inputRange,
+    outputRange: measure.map(item => item.x),
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.indicatorStyle,
+        {width: tabIndicatorWidth, transform: [{translateX}]},
+      ]}
+    />
+  );
+};
+
+const Tabs = ({appTheme, scrollX, onPromoTabPress}) => {
+  const [measure, setMeasure] = useState([]);
+  const containerRef = useRef();
+  const tabPosition = Animated.divide(scrollX, SIZES.width);
+
+  useEffect(() => {
+    let ml = [];
+
+    promoTabs.forEach(promo => {
+      promo.ref.current.measureLayout(
+        containerRef.current,
+        (x, y, width, height) => {
+          if (width > 0) {
+            ml.push({x, y, width, height});
+          }
+
+          if (ml.length === promoTabs.length) {
+            setMeasure(ml);
+          } else {
+            setMeasure([]);
+          }
+        },
+      );
+    });
+  }, [containerRef.current]);
+
   return (
     <View
+      ref={containerRef}
       style={[
         styles.tabStyle,
         {backgroundColor: appTheme && appTheme.tabBackgroundColor},
       ]}>
       {/* Tab Indicator */}
-      <View style={styles.indicatorStyle} />
+      {measure.length > 0 && (
+        <TabIndicator measure={measure} scrollX={scrollX} />
+      )}
+      {/* Tab Indicator */}
 
       {/* Tab */}
       {promoTabs.map((item, index) => {
+        const textColor = tabPosition.interpolate({
+          inputRange: [index - 1, index, index + 1],
+          outputRange: [COLORS.lightGreen2, COLORS.white, COLORS.lightGreen2],
+          extrapolate: 'clamp',
+        });
+
         return (
           <TouchableOpacity
             key={`promoTab-${index}`}
-            style={styles.tabBtnStyle}>
-            <View style={styles.tabContentStyle}>
-              <Text style={styles.tabContent}>{item.title}</Text>
+            style={styles.tabBtnStyle}
+            onPress={() => onPromoTabPress(index)}>
+            <View ref={item.ref} style={styles.tabContentStyle}>
+              <Animated.Text style={[styles.tabContent, {color: textColor}]}>
+                {item.title}
+              </Animated.Text>
             </View>
           </TouchableOpacity>
         );
       })}
+      {/* Tab */}
     </View>
   );
 };
@@ -43,13 +114,27 @@ const Tabs = ({appTheme}) => {
 const Promo = ({appTheme}) => {
   const navigation = useNavigation();
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  const promoScrollViewRef = useRef();
+
+  const onPromoTabPress = useCallback(promoTabIndex => {
+    promoScrollViewRef?.current?.scrollToOffset({
+      offset: promoTabIndex * SIZES.width,
+    });
+  });
+
   return (
     <View style={styles.promoContainer}>
       {/* Header Tabs */}
-      <Tabs appTheme={appTheme} scrollX={scrollX} />
+      <Tabs
+        appTheme={appTheme}
+        scrollX={scrollX}
+        onPromoTabPress={onPromoTabPress}
+      />
 
       {/* Details */}
       <Animated.FlatList
+        ref={promoScrollViewRef}
         data={dummyData.promos}
         horizontal
         pagingEnabled
@@ -63,54 +148,52 @@ const Promo = ({appTheme}) => {
             useNativeDriver: false,
           },
         )}
-        renderItem={({item, index}) => {
-          return (
-            <View style={styles.itemDetailStyle}>
-              {/* Image */}
-              <Image
-                source={item.image}
-                resizeMode="contain"
-                style={styles.imageItem}
-              />
+        renderItem={({item, index}) => (
+          <View style={styles.itemDetailStyle}>
+            {/* Image */}
+            <Image
+              source={item.image}
+              resizeMode="contain"
+              style={styles.imageItem}
+            />
 
-              {/* Name */}
-              <Text style={styles.itemName}>{item.name}</Text>
+            {/* Name */}
+            <Text style={styles.itemName}>{item.name}</Text>
 
-              {/* Description */}
-              <Text
-                style={[
-                  styles.itemDescript,
-                  {color: appTheme && appTheme.textColor},
-                ]}>
-                {item.description}
-              </Text>
+            {/* Description */}
+            <Text
+              style={[
+                styles.itemDescript,
+                {color: appTheme && appTheme.textColor},
+              ]}>
+              {item.description}
+            </Text>
 
-              {/* Calories */}
-              <Text
-                style={[
-                  styles.itemColories,
-                  {color: appTheme && appTheme.textColor},
-                ]}>
-                {item.calories}
-              </Text>
+            {/* Calories */}
+            <Text
+              style={[
+                styles.itemColories,
+                {color: appTheme && appTheme.textColor},
+              ]}>
+              {item.calories}
+            </Text>
 
-              {/* Button */}
-              <CustomButton
-                label="Order Now"
-                isPrimaryButton={true}
-                containerStyle={{
-                  marginTop: 10,
-                  marginHorizontal: SIZES.padding,
-                  paddingHorizontal: SIZES.padding,
-                  paddingVertical: SIZES.base,
-                  borderRadius: SIZES.radius * 4,
-                }}
-                labelStyle={{...FONTS.h3}}
-                onPress={() => navigation.navigate('Location')}
-              />
-            </View>
-          );
-        }}
+            {/* Button */}
+            <CustomButton
+              label="Order Now"
+              isPrimaryButton={true}
+              containerStyle={{
+                marginTop: 10,
+                marginHorizontal: SIZES.padding,
+                paddingHorizontal: SIZES.padding,
+                paddingVertical: SIZES.base,
+                borderRadius: SIZES.radius * 4,
+              }}
+              labelStyle={{...FONTS.h3}}
+              onPress={() => navigation.navigate('Location')}
+            />
+          </View>
+        )}
       />
     </View>
   );
@@ -137,13 +220,11 @@ const styles = StyleSheet.create({
     height: 40,
   },
   tabContent: {
-    color: COLORS.white,
     ...FONTS.h3,
   },
   indicatorStyle: {
     position: 'absolute',
     height: '100%',
-    width: 100,
     left: 0,
     backgroundColor: COLORS.primary,
     borderRadius: SIZES.radius,
