@@ -16,7 +16,8 @@ const CustomButton = ({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: isPrimaryButton ? COLORS.primary : COLORS.transparent,
-        borderWidth: isPrimaryButton ? 1 : 0,
+        borderWidth: isSecondaryButton ? 2 : 0,
+        borderColor: isSecondaryButton ? COLORS.primary : COLORS.transparent,
         ...containerStyle,
       }}
       onPress={onPress}>
