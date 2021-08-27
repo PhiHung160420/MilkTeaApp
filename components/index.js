@@ -4,5 +4,14 @@ import Promo from './Home/Promo';
 import CustomButton from './CustomComponents/CustomButton';
 import IconButton from './IconButton';
 import TabButton from './TabButton';
+import VerticalTextButton from './VerticalTextButton';
 
-export {HeaderBar, Rewards, Promo, CustomButton, IconButton, TabButton};
+export {
+  HeaderBar,
+  Rewards,
+  Promo,
+  CustomButton,
+  IconButton,
+  TabButton,
+  VerticalTextButton,
+};
